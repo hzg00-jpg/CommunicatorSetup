@@ -212,7 +212,10 @@ def handle_client(conn, addr): # Receive function
         if conn not in clients: # Ignores nonverified clients.
             break
 
-        gate = recv_all(conn, 5) # Reads the first header to determine whether it's real or dummy traffic
+        try:
+            gate = recv_all(conn, 5) # Reads the first header to determine whether it's real or dummy traffic
+        except (ConnectionResetError, BrokenPipeError, ssl.SSLError):
+            break 
 
         if not gate:
             pass # Error handling

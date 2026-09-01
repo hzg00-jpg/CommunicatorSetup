@@ -151,12 +151,6 @@ def receive():
 threading.Thread(target=receive, daemon=True).start() 
 # Creates a receive thread object to allow the client to receive messages and accept user input at the same time.
 
-
-def get_poisson_delay():
-    u = random.uniform(0.00001, 1.0)
-    return -math.log(u) / AVG_POISSON_DELAY
-
-
 def dummy_traffic():
     """
     Creates dummy traffic to the server.
@@ -170,7 +164,7 @@ def dummy_traffic():
             time.sleep(0.1)
             continue
 
-        time.sleep(random.expovariate(2)) 
+        time.sleep(random.expovariate(AVG_POISSON_DELAY)) 
         try:
             send_dummy()
         except Exception as e:
