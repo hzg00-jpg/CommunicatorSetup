@@ -13,7 +13,7 @@ Stealth based server that focuses on blending into regular traffic.
 HEADER = 16
 SIZES_LIST = [256, 384, 512, 640, 768, 896, 1024]
 
-PORT = 5000 # Use 443 when outside testing, HTTPS
+PORT = 5000 # 5000 is for testing, use a more natural port such as 443 when outside testing.
 SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
@@ -23,7 +23,7 @@ DUMMY_TRAFFIC = "OFF" # Either OFF or ON
 MAX_VERIFICATION = 5 # Maximum number of people who can be in the verification system at one time
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-context.load_cert_chain(certfile="gitignored/secure.crt", keyfile="gitignored/secure.key")
+context.load_cert_chain(certfile="certificate.crt", keyfile="key.key")
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
@@ -212,10 +212,7 @@ def handle_client(conn, addr): # Receive function
         if conn not in clients: # Ignores nonverified clients.
             break
 
-        try:
-            gate = recv_all(conn, 5)
-        except (ConnectionResetError, BrokenPipeError, ssl.SSLError):
-            break
+        gate = recv_all(conn, 5) # Reads the first header to determine whether it's real or dummy traffic
 
         if not gate:
             pass # Error handling
@@ -275,7 +272,7 @@ def broadcast(message, sender=None):
             continue
 
         try:
-            time.sleep(random.expovariate(20))
+            time.sleep(random.expovariate(2))
             send(client, message) # Sends information to every other client, excluding the author of the message
         except:
             clients.remove(client) # Removes the client from the server if they disconnect
@@ -291,7 +288,7 @@ def dummy_traffic():
         if DUMMY_TRAFFIC != "ON":
             break
 
-        time.sleep(random.expovariate(20))
+        time.sleep(random.expovariate(2))
         for conn in clients[:]: 
             try:
                 send_dummy(conn)
