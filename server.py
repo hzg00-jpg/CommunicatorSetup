@@ -13,7 +13,7 @@ Stealth based server that focuses on blending into regular traffic.
 HEADER = 16
 SIZES_LIST = [256, 384, 512, 640, 768, 896, 1024]
 
-PORT = 5000 # 5000 is for testing, use a more natural port such as 443 when outside testing.
+PORT = 5000 # Use 443 when outside testing, HTTPS
 SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
@@ -23,15 +23,13 @@ DUMMY_TRAFFIC = "OFF" # Either OFF or ON
 MAX_VERIFICATION = 5 # Maximum number of people who can be in the verification system at one time
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-context.load_cert_chain(certfile="certificate.crt", keyfile="key.key")
+context.load_cert_chain(certfile="gitignored/secure.crt", keyfile="gitignored/secure.key")
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 
 clients = [] # Verified connections
 connected = [] # Anyone who connects
-
-verification = [] # Contains tuples of (key, port)
 
 # Semaphore for verification
 verifying_limit = threading.Semaphore(MAX_VERIFICATION)
@@ -131,10 +129,11 @@ def determine_padding(msg_length):
 
     msg_length: length of the message that is to be padded.
     """
-    suitable_sizes = [sizes for sizes in SIZES_LIST if sizes > msg_length]
+    # 5 + 4 + 16 = 25, minimum size from padding
+    suitable_sizes = [sizes for sizes in SIZES_LIST if sizes > msg_length + 25]
     selected_random_size = random.choice(suitable_sizes)
 
-    num = random.randint(msg_length, selected_random_size) - msg_length - 16 - 5 # Subtract heading and real/dummy heading
+    num = random.randint(msg_length + 25, selected_random_size) - msg_length - 16 - 5 # Subtract heading and real/dummy heading
     return str(num).zfill(4) # Always fills it to 4 digits. Won't exceed 4, SIZES_LIST caps at 4 digits.
 
 
@@ -213,7 +212,10 @@ def handle_client(conn, addr): # Receive function
         if conn not in clients: # Ignores nonverified clients.
             break
 
-        gate = recv_all(conn, 5) # Reads the first header to determine whether it's real or dummy traffic
+        try:
+            gate = recv_all(conn, 5)
+        except (ConnectionResetError, BrokenPipeError, ssl.SSLError):
+            break
 
         if not gate:
             pass # Error handling
@@ -273,7 +275,7 @@ def broadcast(message, sender=None):
             continue
 
         try:
-            time.sleep(random.expovariate(2))
+            time.sleep(random.expovariate(20))
             send(client, message) # Sends information to every other client, excluding the author of the message
         except:
             clients.remove(client) # Removes the client from the server if they disconnect
@@ -289,7 +291,7 @@ def dummy_traffic():
         if DUMMY_TRAFFIC != "ON":
             break
 
-        time.sleep(random.expovariate(2))
+        time.sleep(random.expovariate(20))
         for conn in clients[:]: 
             try:
                 send_dummy(conn)
@@ -301,4 +303,3 @@ threading.Thread(target=dummy_traffic, daemon=True).start()
 
 print("[STARTING] Server is starting...")
 start()
-

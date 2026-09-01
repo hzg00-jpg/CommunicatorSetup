@@ -1,4 +1,3 @@
-import math
 import random
 import socket
 import ssl
@@ -14,20 +13,20 @@ HEADER = 16
 SIZES_LIST = [256, 384, 512, 640, 768, 896, 1024]
 
 PORT = 5000 # Use 443 when outside testing, HTTPS
-SERVER = "192.168.0.82"
+SERVER = "enter private ip here"
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!disconnect"
 
-AVG_POISSON_DELAY = 2 # n amounts of messages per second
+AVG_POISSON_DELAY = 10 # n amounts of messages per second
 DUMMY_TRAFFIC = "OFF" # Either OFF or ON
 
 
 context = ssl.create_default_context()
-context.load_verify_locations("certificate.crt") # trust the certificate
+context.load_verify_locations("gitignored/secure.crt") # trust the certificate
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client = context.wrap_socket(client, server_hostname="auth.internal-auth.net")
+client = context.wrap_socket(client, server_hostname="api.internal-services.net")
 client.connect(ADDR)
 
 verified = False
@@ -36,10 +35,11 @@ def determine_padding(msg_length):
     """
     Slightly tweaked block padding.
     """
-    suitable_sizes = [sizes for sizes in SIZES_LIST if sizes > msg_length]
+    # 5 + 4 + 16 = 25, minimum size from padding
+    suitable_sizes = [sizes for sizes in SIZES_LIST if sizes > msg_length + 25]
     selected_random_size = random.choice(suitable_sizes)
 
-    num = random.randint(msg_length, selected_random_size) - msg_length - 16 - 5
+    num = random.randint(msg_length + 25, selected_random_size) - msg_length - 16 - 5
     return str(num).zfill(4) # Always fills it to 4 digits. Won't exceed 4, SIZES_LIST caps at 4 digits.
 
 
@@ -101,6 +101,7 @@ def recv_all(conn, n):
         data += packet
     return data
 
+
 def receive():
     """
     Receives data from the server. 
@@ -144,18 +145,13 @@ def receive():
 
             print(msg) # Prints the received message (from broadcast). Also handles the initial connection message.
 
-        except Exception as e: # Most connection closes are caught by if not header
+        except Exception as e: # Most connection closes are caught by the 'if not' header
             break
 
     client.close()
 
 threading.Thread(target=receive, daemon=True).start() 
 # Creates a receive thread object to allow the client to receive messages and accept user input at the same time.
-
-
-def get_poisson_delay():
-    u = random.uniform(0.00001, 1.0)
-    return -math.log(u) / AVG_POISSON_DELAY
 
 
 def dummy_traffic():
@@ -171,7 +167,7 @@ def dummy_traffic():
             time.sleep(0.1)
             continue
 
-        time.sleep(random.expovariate(2)) 
+        time.sleep(random.expovariate(20)) 
         try:
             send_dummy()
         except Exception as e:
