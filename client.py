@@ -13,7 +13,7 @@ HEADER = 16
 SIZES_LIST = [256, 384, 512, 640, 768, 896, 1024]
 
 PORT = 5000 # Use 443 when outside testing, HTTPS
-SERVER = "192.168.0.82"
+SERVER = "10.132.4.74"
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MESSAGE = "!disconnect"
